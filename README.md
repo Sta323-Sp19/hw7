@@ -1,8 +1,6 @@
-[![wercker status](https://app.wercker.com/status/67f1409bdfe83dc0e444b1473bbccaa3/s/master "wercker status")](https://app.wercker.com/project/byKey/67f1409bdfe83dc0e444b1473bbccaa3)
-
 Homework 7 - Parking Wars: Manhattan
 ---
-due Tuesday, November 27th by 11:59 pm
+due Tuesday, April 23rd by 11:59 pm
 
 ![ticket](nyc_parking_ticket.jpg?raw=true)
 
@@ -13,6 +11,8 @@ New York City is at the forefront of the open data movement among local, state a
 This will be our first foray in to big*ish* data as the CSV files containing these data are between 1-2 gigabytes in size and contains more than 9 million observations per year. This is not so big that we can't run our analyses on a moderately powerful laptop, but it is large enough that we need to start paying attention to what we are doing and the performance of our code. 
 
 These data contains reflect all parking violations from in the five boroughs of New York City for fiscal years 2014 through 2018. We will simplify matters somewhat by focusing our analyses solely on Manhattan (excluding Brooklyn, the Bronx, Queens, and Staten Island).
+
+The police precincts in Manhattan are: 1, 5, 6, 7, 9, 10, 13, 14, 17, 18, 19, 20, 22, 23, 24, 25, 26, 28, 30, 32, 33, 34.
 
 <br/>
 
@@ -48,27 +48,33 @@ As mentioned before, the data is complex and messy so keep in mind that there is
 
 To make things more interesting I will be offering extra credit to the team(s) that are best able to recreate the precinct map as judged by the smallest total area of discrepancy between your prediction and the true map. In order to win the prize you must abide by the rules as detailed below. I will maintain a leader board so that you will be able to judge how well you are doing relative to the other teams in the class.
 
-For this task you are expected to produce a GeoJSON file called `precinct.geojson`, for details on formatting see the [example repo](https://github.com/Sta623-Fa18/hw7). Your write up should include a discussion of your approaches to generating the boundaries and at least a simple visualization of your boundaries on top of the Manhattan borough boundary.
+For this task you are expected to produce a GeoJSON file called `precinct.geojson`, for details on formatting see the [example repo](https://github.com/Sta323-Sp19/hw7). Your write up should include a discussion of your approaches to generating the boundaries and at least a simple visualization of your boundaries on top of the Manhattan borough boundary.
+
+### Central Park
+
+The 13th precinct in Manhattan covers central park, this precinct will be particularly challenging since there are very few commercial buildings for us to use as a basis of geocoding. As such you will likely have almost no points for this particular precicnt coming from your Task 1 results. 
+
+For this and only this precinct you are allowed to impute fake ticket locations and add them to your data frame from Task 1. You may do this by finding the coordinates of the four corners of Central Parking and using those to construct four sided polygon from which you sample interior points. 
 
 
 
 ### Rules
 
-* There will is a hard limit of 2 hours of run time for this assignment, I should be able to run / knit your code and have the entire analysis and all output finished within 2 hours on saxon.
+* There will is a hard limit of 2 hours of run time for this assignment, I should be able to run / knit your code and have the entire analysis and all output finished within 2 hours on saxon / gort / smith.
 
 * If you wish to use any additional data source(s), *you must* first check it with me and I will approve it or not. Additional data may only be used to improve the quality of your geocoding, you are not allowed to use anything beyond the geocoded parking violation data to directly estimate the precinct boundaries.
 
-  * The one exception to this is that you are allowed to impute fake tickets for central park.
-
 * You may not use any existing precinct data regardless of source. I am aware that the precinct boundaries are only a google search away - avoid the temptation. If I suspect that you have used this data at any point in your analysis your whole team will be disqualified from the performance contest and I also reserve the right to penalize your assignment grade for particularly egregious cases. This applies even to instances where you solely use the data to score yourself.
 
-* Do not create unnecessary copies of the data, you *should not* create a local copy of any of the   `nyc_parking_{year}.csv` files in your home directory. If you absolutely must, you can maintain a copy on your own laptop. If you are saving intermediary files, make sure to remove as much unnecessary data as possible (columns and or rows) and save the file in a binary format (e.g. Rdata or rds). Be aware of the size of your files and your disk usage and be very careful to not commit any large files to git as this can prevent you from being able to push to github.
+* Do not create unnecessary copies of the data, you *should not* create a local copy of any of the `nyc_parking_{year}.csv` files in your home directory. If you absolutely must, you can maintain a copy on your own laptop. If you are saving intermediary files, make sure to remove as much unnecessary data as possible (columns and or rows) and save the file in a binary format (e.g. Rdata or rds). Be aware of the size of your files and your disk usage and be very careful to not commit any large files to git as this can prevent you from being able to push to github.
+
+* Using more than one year's worth of data is likely unnecessary, be aware of how much memory you are using and make sure to clean up unnecessary and unused objects so that your memory footprint is as small as possible. Processes found to be using an excessive amount of resources will be killed.
 
 <br/>
 
 ## Submission and Grading
 
-This homework is due Tuesday November 27th  by 11:59 pm. You are to complete the assignment as a group and to keep everything (code, write ups, etc.) on your team's github repository (commit early and often). All team members are expected to contribute equally to the completion of this assignment and group assessments will be given at its completion - anyone judged to not have sufficient contributed to the final product will have their grade penalized. 
+This homework is due Tuesday April 23rd by 11:59 pm. You are to complete the assignment as a group and to keep everything (code, write ups, etc.) on your team's github repository (commit early and often). All team members are expected to contribute equally to the completion of this assignment and group assessments will be given at its completion - anyone judged to not have sufficient contributed to the final product will have their grade penalized. 
 
 The final product for this assignment is a single document named `hw7.Rmd` that contains a write up for your approach to both the geocoding of the violation addresses and the reconstruction of the police precinct boundaries.
 
