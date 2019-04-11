@@ -1,5 +1,5 @@
 ---
-title: "Sta 523 - Homework 7"
+title: "Sta 323 - Homework 7"
 author: [Your names here]
 output: html_document
 ---
@@ -36,8 +36,12 @@ plot(st_geometry(pluto))
 ### Clean data
 
 ```{r}
+manh_precincts = c(1, 5, 6, 7, 9, 10, 13, 14, 17, 18, 19, 20, 22, 23, 24, 25, 26, 28, 30, 32, 33, 34)
+
 nyc_ticket = nyc %>%
-  filter(violation_precinct >= 1, violation_precinct <= 34) %>%
+  filter(
+    violation_precinct %in% manh_precincts
+  ) %>%
   transmute(
     violation_precinct = violation_precinct,
     address = paste(house_number, street_name) %>% tolower()  
@@ -65,6 +69,8 @@ match = inner_join(
   nyc_ticket,
   by = "address"
 )
+
+dim(match)
 ```
 
 ```{r}
@@ -77,9 +83,136 @@ ggplot(match, aes(x=X, y=Y, color=as.factor(violation_precinct))) +
 ### Setup
 
 ```{r}
+manh = read_sf("/data/nyc_parking/nybb/") %>% 
+  filter(BoroName == "Manhattan")
+
+#pts = st_sample(bb, size = 100)
+bbox = st_bbox(manh)
+
+x_pts = seq(bbox["xmin"], bbox["xmax"], by=0.001) #by=0.0005)
+y_pts = seq(bbox["ymin"], bbox["ymax"], by=0.001) #by=0.0005)
+
+pts = expand.grid(
+  X = x_pts,
+  Y = y_pts
+) %>%
+  as.matrix() %>%
+  st_multipoint() %>%
+  st_sfc() %>%
+  st_set_crs(st_crs(manh))
+
+manh_pts = st_intersection(manh, pts)
+
+manh_pts_df = manh_pts %>%
+  st_coordinates() %>%
+  as_tibble()
 ```
 
 ### Modeling
 
+#### Logistics Regession
+
 ```{r}
+log_df = match %>%
+  mutate(
+    precinct =  as.integer(violation_precinct == 1)
+  )
+
+log_df
+
+g = glm(precinct ~ poly(X,2)*poly(Y,2), data = log_df, family = binomial)
+
+glm_pred = manh_pts_df %>%
+  mutate(
+    p = predict(g, newdata = ., type = "response")
+  )
+
+glm_pred %>%
+  ggplot(aes(x=X, y=Y, color=p)) +
+   geom_point(size=0.1)
+```
+
+#### "Multiple" Logistics Regession
+
+```{r}
+library(future)
+plan(multiprocess)
+
+precincts = unique(match$violation_precinct) %>% sort()
+
+mglm = furrr::future_map( 
+  precincts,
+  function(i) {
+    log_df = match %>%
+      mutate(
+        precinct =  as.integer(violation_precinct == i)
+      )
+    g = glm(precinct ~ poly(X,2)*poly(Y,2), data = log_df, family = binomial)
+    
+    predict(g, newdata = manh_pts_df, type = "response")
+  }
+)
+
+res = mglm %>% do.call(cbind, .)
+
+mglm_pred = manh_pts_df %>%
+  mutate(
+    p_index = apply(res, 1, which.max),
+    p_id = precincts[p_index]
+  )
+
+mglm_pred %>%
+  ggplot(aes(x=X, y=Y, color=as.factor(p_id))) +
+   geom_point(size=0.1)
+```
+
+
+#### Multinomial Regession
+
+```{r}
+library(nnet)
+
+mn_df = match %>%
+  mutate(precinct = as.factor(violation_precinct))
+
+mn = multinom(precinct ~ poly(X,2) * poly(Y,2), data = mn_df)
+
+res = 
+
+mn_pred = manh_pts_df %>%
+  mutate(
+    p = predict(mn, newdata = manh_pts_df),
+  )
+
+mn_pred %>%
+  ggplot(aes(x=X, y=Y, color=p)) +
+   geom_point(size=0.1)
+```
+
+#### xgboost
+
+
+```{r}
+library(xgboost)
+xg_df = match %>%
+  mutate(precinct = as.factor(violation_precinct)) %>%
+  select(-address, -violation_precinct)
+
+precincts = xg_df$precinct %>% levels()
+
+y = xg_df$precinct %>% as.integer() - 1
+x = xg_df %>% select(-precinct) %>% model.matrix(~X*Y-1,.)
+
+xg = xgboost(data=x, label=y, nthread=4, nrounds=20, objective = "multi:softmax", num_class = 22)
+
+xg_pred = manh_pts_df %>%
+  mutate(
+    p_index = predict(xg, newdata=manh_pts_df %>% model.matrix(~X*Y-1,.)), 
+    p_id = precincts[p_index+1]
+  )
+
+
+xg_pred %>%
+  ggplot(aes(x=X, y=Y, color=as.factor(p_id))) +
+   geom_point(size=0.1)
 ```
