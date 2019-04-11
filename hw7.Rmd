@@ -18,24 +18,59 @@ library(ggplot2)
 ### Parking Violation Data
 
 ```{r}
+nyc = readRDS("/data/nyc_parking/nyc_parking_2014_cleaned.rds")
+
+head(nyc)
 ```
 
 ### Geocoding Data
 
 ```{r warning=FALSE}
+pluto = read_sf("/data/nyc_parking/pluto_manhattan/MNMapPLUTO.shp")
+
+head(pluto$Address)
+
+plot(st_geometry(pluto))
 ```
 
 ### Clean data
 
 ```{r}
+nyc_ticket = nyc %>%
+  filter(violation_precinct >= 1, violation_precinct <= 34) %>%
+  transmute(
+    violation_precinct = violation_precinct,
+    address = paste(house_number, street_name) %>% tolower()  
+  )
+```
+
+
+```{r}
+pluto_xy = pluto %>% 
+  st_centroid() %>% 
+  transmute(address = Address %>% tolower()) %>%
+  cbind(., st_coordinates(.)) %>%
+  as_tibble() %>%
+  select(-geometry)
+
+plot(select(pluto_xy, -address), pch=16, cex=0.1)
 ```
 
 
 ### Merge data
 
 ```{r}
+match = inner_join(
+  pluto_xy,
+  nyc_ticket,
+  by = "address"
+)
 ```
 
+```{r}
+ggplot(match, aes(x=X, y=Y, color=as.factor(violation_precinct))) +
+  geom_point()
+```
 
 ## Task 2 - Modeling
 
