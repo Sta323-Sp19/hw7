@@ -216,3 +216,38 @@ xg_pred %>%
   ggplot(aes(x=X, y=Y, color=as.factor(p_id))) +
    geom_point(size=0.1)
 ```
+
+
+```{r}
+pred = purrr::map2(
+  xg_pred$X, xg_pred$Y,
+  function(x,y) {
+    st_point(c(x,y))
+  }
+) %>% 
+  st_sfc() %>%
+  st_sf() %>%
+  mutate(
+    precinct = xg_pred$p_id
+  )
+  
+buf_pred = pred %>%
+  group_by(precinct) %>%
+  st_buffer(0.001*sqrt(2)/(1.5)) %>%
+  summarize()
+
+ggplot(buf_pred, aes(color=as.factor(precinct))) +
+  geom_sf() 
+
+mapview::mapview(buf_pred)
+```
+
+
+```{r}
+buf_pred %>%
+  mutate(
+    precinct = as.integer(precinct)
+  ) %>%
+  st_write("precincts.geojson", delete_dsn=TRUE)
+
+```
